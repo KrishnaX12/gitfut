@@ -26,6 +26,8 @@ interface Asset {
   size: number; // square frame edge, px
   mode: "spin" | "tumble";
   lights: "trophy" | "ball";
+  /** Environment-map intensity override (default: 0.55 trophies, 1.0 ball). */
+  env?: number;
 }
 
 // Frame counts trade smoothness against file size; fps sets playback pace to
@@ -33,7 +35,8 @@ interface Asset {
 const ASSETS: Asset[] = [
   { key: "world_cup", model: "3D-Models/world_cup_trophy.glb", frames: 96, fps: 12, size: 320, mode: "spin", lights: "trophy" },
   { key: "golden_boot", model: "3D-Models/golden_boot.glb", frames: 96, fps: 12, size: 320, mode: "spin", lights: "trophy" },
-  { key: "golden_glove", model: "3D-Models/golden_glove.glb", frames: 96, fps: 12, size: 320, mode: "spin", lights: "trophy" },
+  { key: "ballon_dor", model: "awards/golden_ball.glb", frames: 96, fps: 12, size: 320, mode: "spin", lights: "trophy", env: 2 },
+  { key: "wc_golden_ball", model: "awards/golden_ball_world_cup.glb", frames: 96, fps: 12, size: 320, mode: "spin", lights: "trophy" },
   { key: "ball", model: "3D-Models/fifa_trionda_ball_world_cup_2026.glb", frames: 126, fps: 20, size: 160, mode: "tumble", lights: "ball" },
 ];
 
@@ -59,7 +62,7 @@ import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 // lighting. Fetched at bake time only; RoomEnvironment is the offline fallback.
 const CITY_HDR = "https://raw.githack.com/pmndrs/drei-assets/456060a26bbeb8fdf79326f224b6d99b8bcce736/hdri/potsdamer_platz_1k.hdr";
 
-window.bake = async ({ model, frames, size, mode, lights }) => {
+window.bake = async ({ model, frames, size, mode, lights, env }) => {
   const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true });
   renderer.setSize(size, size);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -77,10 +80,10 @@ window.bake = async ({ model, frames, size, mode, lights }) => {
     } catch {
       scene.environment = pmrem.fromScene(new RoomEnvironment()).texture;
     }
-    scene.environmentIntensity = 1.0;
+    scene.environmentIntensity = env ?? 1.0;
   } else {
     scene.environment = pmrem.fromScene(new RoomEnvironment()).texture;
-    scene.environmentIntensity = 0.55;
+    scene.environmentIntensity = env ?? 0.55;
   }
 
   const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
@@ -198,7 +201,7 @@ async function main() {
     const urls: string[] = await page.evaluate(
       // @ts-expect-error window.bake is defined by the bake page
       (a) => window.bake(a),
-      { model: asset.model, frames: asset.frames, size: asset.size, mode: asset.mode, lights: asset.lights },
+      { model: asset.model, frames: asset.frames, size: asset.size, mode: asset.mode, lights: asset.lights, env: asset.env },
     );
 
     const cols = Math.ceil(Math.sqrt(asset.frames));

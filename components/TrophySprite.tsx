@@ -9,6 +9,14 @@ import SPRITES from "@/data/award-sprites.json";
 // prefers-reduced-motion (frame 0 is a fine still).
 type SpriteKey = keyof typeof SPRITES;
 
+// Which sprite renders each award.
+export const AWARD_SPRITES: Record<import("@/lib/scoring/types").AwardKey, { sprite: SpriteKey; tint?: string }> = {
+  world_cup: { sprite: "world_cup" },
+  ballon_dor: { sprite: "ballon_dor" },
+  wc_golden_ball: { sprite: "wc_golden_ball" },
+  golden_boot: { sprite: "golden_boot" },
+};
+
 export default function TrophySprite({
   sprite,
   size,
