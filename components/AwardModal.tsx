@@ -1,25 +1,28 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { Card } from "@/lib/scoring/types";
-import { qualifyingStat, type Award } from "@/lib/awards";
-import TrophySprite from "./TrophySprite";
+import type { AwardInstance, AwardKey } from "@/lib/scoring/types";
+import { AWARD_META } from "@/lib/awards";
+import TrophySprite, { AWARD_SPRITES } from "./TrophySprite";
 
-// Trophy details dialog, shared by the profile shelf and duel corners. Follows
-// the HowItWorksModal conventions: dialog semantics, focus on open, Escape and
-// backdrop close, entrance transition (instant under reduced motion via the
-// global reset).
+// Trophy details dialog, shared by the profile shelf and duel corners. Shows
+// every instance of the award the card holds — a 3× Ballon d'Or lists all
+// three years with their reasons. Follows the HowItWorksModal conventions:
+// dialog semantics, focus on open, Escape and backdrop close, entrance
+// transition (instant under reduced motion via the global reset).
 export default function AwardModal({
-  award,
-  card,
+  awardKey,
+  instances,
   onClose,
 }: {
-  award: Award;
-  card: Card;
+  awardKey: AwardKey;
+  instances: AwardInstance[];
   onClose: () => void;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const [shown, setShown] = useState(false);
+  const meta = AWARD_META[awardKey];
+  const art = AWARD_SPRITES[awardKey];
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -47,7 +50,7 @@ export default function AwardModal({
         aria-modal="true"
         aria-labelledby="award-title"
         onClick={(e) => e.stopPropagation()}
-        className="relative flex w-[min(520px,100%)] flex-col items-center gap-4 rounded-[20px] border border-line bg-[linear-gradient(180deg,var(--color-surface-2),var(--color-panel))] p-6 shadow-[0_40px_120px_rgba(0,0,0,.6)] outline-none sm:flex-row sm:gap-6"
+        className="relative flex max-h-[85vh] w-[min(560px,100%)] flex-col items-center gap-4 overflow-auto rounded-[20px] border border-line bg-[linear-gradient(180deg,var(--color-surface-2),var(--color-panel))] p-6 shadow-[0_40px_120px_rgba(0,0,0,.6)] outline-none sm:flex-row sm:items-start sm:gap-6"
         style={{
           opacity: shown ? 1 : 0,
           transform: shown ? "translateY(0) scale(1)" : "translateY(14px) scale(.985)",
@@ -62,30 +65,30 @@ export default function AwardModal({
           ✕
         </button>
 
-        <div className="flex flex-none items-center justify-center">
-          <TrophySprite sprite={award.key} size={140} className="animate-float" />
+        <div className="relative flex flex-none flex-col items-center sm:sticky sm:top-0">
+          <TrophySprite sprite={art.sprite} size={140} className={`animate-float ${art.tint ?? ""}`} />
         </div>
 
-        <div className="flex flex-1 flex-col gap-2 text-center sm:text-left">
+        <div className="flex min-w-0 flex-1 flex-col gap-2 text-center sm:text-left">
           <h3
             id="award-title"
             className="font-display text-2xl font-black uppercase leading-tight tracking-wide text-gold-hi"
           >
-            {award.title}
+            {meta.title}
           </h3>
 
-          <div>
-            <span className="inline-block rounded-full border border-brand/20 bg-brand/10 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-brand">
-              {award.metricLabel}
-            </span>
-          </div>
+          <p className="mt-1 text-sm leading-relaxed text-ink-soft">{meta.description}</p>
 
-          <p className="mt-1 text-sm leading-relaxed text-ink-soft">{award.description}</p>
-
-          <div className="mt-3 flex items-center justify-between border-t border-white/5 pt-3 font-mono text-[11px] text-ink-mute">
-            <span>QUALIFYING STAT</span>
-            <span className="text-xs font-bold text-ink-dim">{qualifyingStat(award, card)}</span>
-          </div>
+          <ul className="mt-3 flex flex-col gap-2 border-t border-white/5 pt-3">
+            {instances.map((a) => (
+              <li key={`${a.year ?? ""}${a.edition ?? "held"}`} className="text-left">
+                <span className="font-display mr-2 text-[12px] font-bold tracking-[.14em] text-gold">
+                  {a.edition ?? a.year ?? "CURRENT FORM"}
+                </span>
+                <span className="text-[12.5px] leading-snug text-ink-dim">{a.reason}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </div>

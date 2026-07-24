@@ -21,9 +21,9 @@ import { useShareActions } from "@/hooks/useShareActions";
 import { resolvedRows } from "@/lib/reveal";
 import { formatCount } from "@/lib/format";
 import { duelIntentUrl, duelSharePayload, duelUrl } from "@/lib/share";
-import { earnedAwards, type Award } from "@/lib/awards";
+import { AWARD_META, groupAwards, type AwardGroup } from "@/lib/awards";
 import AwardModal from "./AwardModal";
-import TrophySprite from "./TrophySprite";
+import TrophySprite, { AWARD_SPRITES } from "./TrophySprite";
 
 const CARD_WIDTH = "clamp(150px, min(24vw, 34vh), 292px)";
 
@@ -157,7 +157,7 @@ export default function DuelView({
 }) {
   const { challenger, opponent, rows, winner, onPenalties, training } = duel;
 
-  const [activeAward, setActiveAward] = useState<{ award: Award; card: Card } | null>(null);
+  const [activeAward, setActiveAward] = useState<AwardGroup | null>(null);
   // Kit clash (see finishTheme): ONLY a toty/totw vs silver pairing recolors —
   // the toty side wears its saturated tier blue so the sides stay readable.
   const { home: aTheme, away: bTheme } = duelThemes(challenger, opponent);
@@ -211,10 +211,9 @@ export default function DuelView({
   const corner = (card: Card, theme: { ink: string }, side: DuelSide) => {
     const won = focus === side;
     const lost = focus !== null && !won;
-    // Showcase, not prize: a corner displays the trophies this card has already
-    // EARNED (same thresholds as the profile shelf) — belts you walk in with.
-    // The duel itself never awards trophies.
-    const cabinet = earnedAwards(card);
+    // Showcase, not prize: a corner flexes the cabinet this card walked in with
+    // (computed at scout time). The duel itself never awards trophies.
+    const cabinet = groupAwards(card.awards);
     return (
       <div
         className={`flex flex-col items-center gap-[10px] ${
@@ -239,19 +238,28 @@ export default function DuelView({
               <h3 className="font-display text-[8.5px] font-bold tracking-[.25em] text-ink-mute uppercase">ACHIEVED AWARDS</h3>
             </div>
             <div className="flex justify-evenly mt-1 items-center gap-1">
-              {cabinet.map((award) => (
+              {cabinet.map((group) => (
                 <button
-                  key={award.key}
+                  key={group.key}
                   type="button"
-                  onClick={() => setActiveAward({ award, card })}
-                  aria-label={`${award.title} details`}
-                  className="flex flex-col items-center cursor-pointer group"
+                  onClick={() => setActiveAward(group)}
+                  aria-label={`${AWARD_META[group.key].title} details`}
+                  className="relative flex flex-col items-center cursor-pointer group"
                 >
                   <div className="group-hover:scale-110 active:scale-95 transition-transform duration-200">
-                    <TrophySprite sprite={award.key} size={68} />
+                    <TrophySprite
+                      sprite={AWARD_SPRITES[group.key].sprite}
+                      size={68}
+                      className={AWARD_SPRITES[group.key].tint}
+                    />
                   </div>
+                  {group.instances.length > 1 && (
+                    <span className="font-display absolute right-[2px] top-[2px] text-[15px] font-semibold text-gold">
+                      ×{group.instances.length}
+                    </span>
+                  )}
                   <span className="text-[7.5px] font-mono font-bold text-ink-mute tracking-wider mt-0.5 group-hover:text-gold transition-colors">
-                    {award.shelfLabel}
+                    {AWARD_META[group.key].shelfLabel}
                   </span>
                 </button>
               ))}
@@ -717,8 +725,8 @@ export default function DuelView({
 
       {activeAward && (
         <AwardModal
-          award={activeAward.award}
-          card={activeAward.card}
+          awardKey={activeAward.key}
+          instances={activeAward.instances}
           onClose={() => setActiveAward(null)}
         />
       )}

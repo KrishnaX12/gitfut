@@ -18,8 +18,8 @@ import dynamic from "next/dynamic";
 import { AttributesPanel, MetricsPanel, ReportHeader } from "./ScoutReport";
 import DistributionPanel from "./DistributionPanel";
 import AwardModal from "./AwardModal";
-import TrophySprite from "./TrophySprite";
-import { earnedAwards, type Award } from "@/lib/awards";
+import TrophySprite, { AWARD_SPRITES } from "./TrophySprite";
+import { AWARD_META, groupAwards, type AwardGroup } from "@/lib/awards";
 import { confettiPalette, resolveCardTheme, resolveResultTheme } from "./finishTheme";
 import { useReveal } from "@/hooks/useReveal";
 import { burstConfetti } from "@/lib/confetti";
@@ -53,7 +53,7 @@ export default function ResultView({
   const theme = resolveResultTheme(card);
   const phase = useReveal(card.finish);
   const [modalOpen, setModalOpen] = useState(false);
-  const [activeAward, setActiveAward] = useState<Award | null>(null);
+  const [activeAward, setActiveAward] = useState<AwardGroup | null>(null);
 
   // BACK when the visitor came from home this tab; otherwise (direct / shared
   // link) a CTA to make their own card. Default to the CTA so share-link
@@ -234,7 +234,11 @@ export default function ResultView({
     {modalOpen && <HowItWorksModal onClose={() => setModalOpen(false)} />}
 
     {activeAward && (
-      <AwardModal award={activeAward} card={card} onClose={() => setActiveAward(null)} />
+      <AwardModal
+        awardKey={activeAward.key}
+        instances={activeAward.instances}
+        onClose={() => setActiveAward(null)}
+      />
     )}
     </>
   );
@@ -245,31 +249,40 @@ function AwardsDisplayPanel({
   onAwardClick,
 }: {
   card: Card;
-  onAwardClick: (award: Award) => void;
+  onAwardClick: (group: AwardGroup) => void;
 }) {
-  const earned = earnedAwards(card);
-  if (earned.length === 0) return null;
+  const groups = groupAwards(card.awards);
+  if (groups.length === 0) return null;
 
   return (
     <section className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-[16px] w-full flex flex-col gap-3">
       <div className="mb-[2px] flex items-center gap-[9px]">
         <span className="h-[2px] w-[16px] rounded-full bg-brand" />
-        <h3 className="font-display text-[11px] font-bold tracking-[.22em] text-ink-faint">ACHIEVED AWARDS</h3>
+        <h3 className="font-display text-[11px] font-bold tracking-[.22em] text-ink-faint">TROPHY CABINET</h3>
       </div>
       <div className="flex justify-center gap-2 mt-1 items-center">
-        {earned.map((award) => (
+        {groups.map((group) => (
           <button
-            key={award.key}
+            key={group.key}
             type="button"
-            onClick={() => onAwardClick(award)}
-            aria-label={`${award.title} details`}
-            className="flex flex-col items-center cursor-pointer group"
+            onClick={() => onAwardClick(group)}
+            aria-label={`${AWARD_META[group.key].title} details`}
+            className="relative flex flex-col items-center cursor-pointer group"
           >
             <div className="group-hover:scale-110 active:scale-95 transition-transform duration-200">
-              <TrophySprite sprite={award.key} size={100} />
+              <TrophySprite
+                sprite={AWARD_SPRITES[group.key].sprite}
+                size={100}
+                className={AWARD_SPRITES[group.key].tint}
+              />
             </div>
+            {group.instances.length > 1 && (
+              <span className="font-display absolute right-[2px] top-[2px] text-[15px] font-semibold text-gold">
+                ×{group.instances.length}
+              </span>
+            )}
             <span className="text-[9px] font-mono font-bold text-ink-mute tracking-wider mt-0.5 group-hover:text-gold transition-colors">
-              {award.shelfLabel}
+              {AWARD_META[group.key].shelfLabel}
             </span>
           </button>
         ))}
