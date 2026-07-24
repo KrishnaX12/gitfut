@@ -53,6 +53,7 @@ export default function ResultView({
   const theme = resolveResultTheme(card);
   const phase = useReveal(card.finish);
   const [modalOpen, setModalOpen] = useState(false);
+  const [rankOpen, setRankOpen] = useState(false);
   const [activeAward, setActiveAward] = useState<AwardGroup | null>(null);
 
   // BACK when the visitor came from home this tab; otherwise (direct / shared
@@ -142,7 +143,6 @@ export default function ResultView({
         {/* left — attributes + playstyles */}
         <div className="flex justify-end max-[980px]:order-2 max-[980px]:w-full max-[980px]:max-w-[420px] max-[980px]:justify-center">
           <div className="w-full max-w-[360px] flex flex-col gap-[14px]">
-            <AwardsDisplayPanel card={card} onAwardClick={setActiveAward} />
             <AttributesPanel card={card} />
           </div>
         </div>
@@ -192,13 +192,28 @@ export default function ResultView({
             />
             <DuelButton login={card.login} />
           </div>
+          {/* Mobile cabinet: right under the duel CTA, before the report panels
+              stack — the stacked layout's most visible slot after the card. */}
+          <div className="hidden w-[min(90vw,420px)] max-[980px]:block">
+            <TrophyCabinetPanel card={card} onAwardClick={setActiveAward} />
+          </div>
         </div>
 
-        {/* right — scouting metrics + distribution */}
+        {/* right — scouting metrics + trophy cabinet (the distribution graph
+            moved behind the "see where your profile ranks" modal) */}
         <div className="flex max-[980px]:order-3 max-[980px]:w-full max-[980px]:max-w-[420px] max-[980px]:justify-center">
           <div className="flex w-full max-w-[360px] flex-col gap-[14px]">
             <MetricsPanel card={card} />
-            <DistributionPanel card={card} />
+            <div className="max-[980px]:hidden">
+              <TrophyCabinetPanel card={card} onAwardClick={setActiveAward} />
+            </div>
+            <button
+              type="button"
+              onClick={() => setRankOpen(true)}
+              className="cursor-pointer self-center text-[12px] font-semibold text-ink-soft underline-offset-2 transition hover:text-brand hover:underline"
+            >
+              see where your profile ranks ↗
+            </button>
           </div>
         </div>
       </div>
@@ -233,6 +248,8 @@ export default function ResultView({
 
     {modalOpen && <HowItWorksModal onClose={() => setModalOpen(false)} />}
 
+    {rankOpen && <RankModal card={card} onClose={() => setRankOpen(false)} />}
+
     {activeAward && (
       <AwardModal
         awardKey={activeAward.key}
@@ -244,7 +261,12 @@ export default function ResultView({
   );
 }
 
-function AwardsDisplayPanel({
+// The trophy cabinet panel: sits where the distribution graph used to on wide
+// screens, right under the duel CTA on mobile. Gold accents mark it as the
+// prestige section among the report panels; trophies scale to the cabinet —
+// a lone trophy fills the shelf, a full cabinet of 4 tightens up so nothing
+// collides. Click opens the same AwardModal as the duel corners.
+function TrophyCabinetPanel({
   card,
   onAwardClick,
 }: {
@@ -253,14 +275,24 @@ function AwardsDisplayPanel({
 }) {
   const groups = groupAwards(card.awards);
   if (groups.length === 0) return null;
+  const size = groups.length === 1 ? 96 : groups.length >= 4 ? 60 : 76;
+  const gap = groups.length >= 4 ? "gap-[clamp(10px,1.2vw,16px)]" : "gap-[clamp(18px,4vw,30px)]";
 
   return (
-    <section className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-[16px] w-full flex flex-col gap-3">
-      <div className="mb-[2px] flex items-center gap-[9px]">
-        <span className="h-[2px] w-[16px] rounded-full bg-brand" />
+    <section className="relative w-full overflow-hidden rounded-2xl border border-gold/[0.16] bg-white/[0.02] p-[16px]">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-[60%] h-[140px] w-[80%] -translate-x-1/2 -translate-y-1/2"
+        style={{ background: "radial-gradient(50% 50% at 50% 50%, rgba(212,175,55,.10), transparent 70%)" }}
+      />
+      <div className="flex items-center gap-[9px]">
+        <span className="h-[2px] w-[16px] rounded-full bg-gold" />
         <h3 className="font-display text-[11px] font-bold tracking-[.22em] text-ink-faint">TROPHY CABINET</h3>
       </div>
-      <div className="flex justify-center gap-2 mt-1 items-center">
+      <p className="mt-[6px] text-[11px] leading-snug text-ink-mute">
+        Awards earned from this profile&apos;s GitHub history.
+      </p>
+      <div className={`relative mt-[14px] mb-[2px] flex items-end justify-center ${gap}`}>
         {groups.map((group) => (
           <button
             key={group.key}
@@ -272,21 +304,88 @@ function AwardsDisplayPanel({
             <div className="group-hover:scale-110 active:scale-95 transition-transform duration-200">
               <TrophySprite
                 sprite={AWARD_SPRITES[group.key].sprite}
-                size={100}
+                size={size}
                 className={AWARD_SPRITES[group.key].tint}
               />
             </div>
             {group.instances.length > 1 && (
-              <span className="font-display absolute right-[2px] top-[2px] text-[15px] font-semibold text-gold">
+              <span className={`font-display absolute right-0 top-0 font-semibold text-gold ${size >= 96 ? "text-[15px]" : "text-[13px]"}`}>
                 ×{group.instances.length}
               </span>
             )}
-            <span className="text-[9px] font-mono font-bold text-ink-mute tracking-wider mt-0.5 group-hover:text-gold transition-colors">
+            <span className="text-[8.5px] font-mono font-bold text-ink-mute tracking-wider mt-[5px] group-hover:text-gold transition-colors">
               {AWARD_META[group.key].shelfLabel}
             </span>
           </button>
         ))}
       </div>
     </section>
+  );
+}
+
+// "see where your profile ranks" dialog: houses the distribution histogram.
+// Same conventions as AwardModal — Escape/backdrop close, focus on open,
+// entrance transition.
+function RankModal({ card, onClose }: { card: Card; onClose: () => void }) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [shown, setShown] = useState(false);
+  // Match the tier accent the histogram already uses, so the dialog reads as
+  // one piece on every finish (gold on icon, red on in-form, ...).
+  const accent = resolveResultTheme(card).ink;
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    panelRef.current?.focus();
+    const t = setTimeout(() => setShown(true), 10);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      clearTimeout(t);
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-bg-deep/80 p-[22px] backdrop-blur-[6px]"
+      style={{ opacity: shown ? 1 : 0, transition: "opacity .25s ease" }}
+    >
+      <div
+        ref={panelRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="rank-title"
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-[min(480px,100%)] rounded-2xl border border-line bg-[linear-gradient(180deg,var(--color-surface-2),var(--color-panel))] p-[20px] shadow-[0_40px_120px_rgba(0,0,0,.6)] outline-none"
+        style={{
+          opacity: shown ? 1 : 0,
+          transform: shown ? "translateY(0) scale(1)" : "translateY(14px) scale(.985)",
+          transition: "opacity .4s ease, transform .45s cubic-bezier(.16,1,.3,1)",
+        }}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute right-[14px] top-[14px] z-[1] cursor-pointer text-ink-mute transition hover:text-ink"
+        >
+          ✕
+        </button>
+        <h3
+          id="rank-title"
+          className="font-display text-xl font-black uppercase leading-tight tracking-wide"
+          style={{ color: accent }}
+        >
+          Where you rank
+        </h3>
+        <p className="mb-[14px] mt-[6px] text-[13px] leading-relaxed text-ink-soft">
+          Every card is rated by the same scout. Here&apos;s this one against the rest of GitHub.
+        </p>
+        <DistributionPanel card={card} />
+      </div>
+    </div>
   );
 }
