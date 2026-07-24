@@ -55,6 +55,9 @@ export default function ResultView({
   const [modalOpen, setModalOpen] = useState(false);
   const [rankOpen, setRankOpen] = useState(false);
   const [activeAward, setActiveAward] = useState<AwardGroup | null>(null);
+  // No trophies -> no cabinet: the distribution graph keeps its old panel slot
+  // and the rank modal/link never render.
+  const hasAwards = groupAwards(card.awards).length > 0;
 
   // BACK when the visitor came from home this tab; otherwise (direct / shared
   // link) a CTA to make their own card. Default to the CTA so share-link
@@ -194,26 +197,35 @@ export default function ResultView({
           </div>
           {/* Mobile cabinet: right under the duel CTA, before the report panels
               stack — the stacked layout's most visible slot after the card. */}
-          <div className="hidden w-[min(90vw,420px)] max-[980px]:block">
-            <TrophyCabinetPanel card={card} onAwardClick={setActiveAward} />
-          </div>
+          {hasAwards && (
+            <div className="hidden w-[min(90vw,420px)] max-[980px]:block">
+              <TrophyCabinetPanel card={card} onAwardClick={setActiveAward} />
+            </div>
+          )}
         </div>
 
-        {/* right — scouting metrics + trophy cabinet (the distribution graph
-            moved behind the "see where your profile ranks" modal) */}
+        {/* right — scouting metrics, then the trophy cabinet (distribution
+            graph behind the rank modal) or, on trophy-less cards, the
+            distribution panel in its old slot */}
         <div className="flex max-[980px]:order-3 max-[980px]:w-full max-[980px]:max-w-[420px] max-[980px]:justify-center">
           <div className="flex w-full max-w-[360px] flex-col gap-[14px]">
             <MetricsPanel card={card} />
-            <div className="max-[980px]:hidden">
-              <TrophyCabinetPanel card={card} onAwardClick={setActiveAward} />
-            </div>
-            <button
-              type="button"
-              onClick={() => setRankOpen(true)}
-              className="cursor-pointer self-center text-[12px] font-semibold text-ink-soft underline-offset-2 transition hover:text-brand hover:underline"
-            >
-              see where your profile ranks ↗
-            </button>
+            {hasAwards ? (
+              <>
+                <div className="max-[980px]:hidden">
+                  <TrophyCabinetPanel card={card} onAwardClick={setActiveAward} />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setRankOpen(true)}
+                  className="cursor-pointer self-center text-[12px] font-semibold text-ink-soft underline-offset-2 transition hover:text-brand hover:underline"
+                >
+                  see where your profile ranks ↗
+                </button>
+              </>
+            ) : (
+              <DistributionPanel card={card} />
+            )}
           </div>
         </div>
       </div>
@@ -384,7 +396,7 @@ function RankModal({ card, onClose }: { card: Card; onClose: () => void }) {
         <p className="mb-[14px] mt-[6px] text-[13px] leading-relaxed text-ink-soft">
           Every card is rated by the same scout. Here&apos;s this one against the rest of GitHub.
         </p>
-        <DistributionPanel card={card} />
+        <DistributionPanel card={card} bare />
       </div>
     </div>
   );
