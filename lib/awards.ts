@@ -82,8 +82,9 @@ const AWARD_OVR_FLOOR = 80;
 // career) or is elite in absolute terms (the legend path — a sustained-great
 // career has a huge median no year can tower over, yet those years are exactly
 // what the award exists for). Cap 3 (icons get a 4th — the 90s-are-earned tier
-// already encodes "legend"). The current partial year competes as-is: it can
-// only under-score, never over-score.
+// already encodes "legend"), and repeats demand a stronger profile: each extra
+// trophy needs a higher overall (BDO_OVR_LADDER). The current partial year
+// competes as-is: it can only under-score, never over-score.
 
 // Calibrated on real careers: torvalds' kernel years (commits-only, ~2.5k/yr +
 // a few PRs) score ~17-20 and his best two clear the elite bar; a flat
@@ -96,6 +97,10 @@ const BDO_CAP = 3;
 // Icons may take a 4th — but only for a monster year (score ≥ this), so the
 // extra trophy stays exceptional instead of a routine icon perk.
 const BDO_FOURTH = 28;
+// Repeats demand a stronger profile: the n-th Ballon d'Or needs the card's
+// overall past the n-th floor — one at 80, a second at 87, a third (or an
+// icon's 4th) at 94. First-win difficulty is untouched.
+const BDO_OVR_LADDER = [AWARD_OVR_FLOOR, 87, 94, 94];
 
 const median = (xs: number[]): number => {
   const s = [...xs].sort((a, b) => a - b);
@@ -120,12 +125,13 @@ function ballonDors(card: Card): AwardInstance[] {
     )
     .sort((a, b) => b.score - a.score);
   const icon = card.finish === "icon" || card.finish === "founder";
-  const cap = icon && qualifying[BDO_CAP]?.score >= BDO_FOURTH ? BDO_CAP + 1 : BDO_CAP;
+  const iconCap = icon && qualifying[BDO_CAP]?.score >= BDO_FOURTH ? BDO_CAP + 1 : BDO_CAP;
+  const ovrCap = BDO_OVR_LADDER.filter((floor) => card.overall >= floor).length;
   // Reasons are factual and third-person (cards are mostly viewed by OTHERS),
   // and never claim a rank: rank comes from score, where breadth can beat raw
   // volume, and "career-best: 2,113" next to "#2: 3,928" reads as nonsense.
   return qualifying
-    .slice(0, cap)
+    .slice(0, Math.min(iconCap, ovrCap))
     .sort((a, b) => a.y.year - b.y.year)
     .map(({ y, score }) => {
       const ratio = score / mid;

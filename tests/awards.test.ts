@@ -87,21 +87,34 @@ describe("Ballon d'Or", () => {
     expect(keys(card({ years: flat }))).not.toContain("ballon_dor");
   });
 
+  // Escalating career: later years tower over the early median, every one of
+  // them a qualifying monster — the pool for the cap and repeat-ladder tests.
+  const escalating = [
+    year(2016, { commits: 100 }),
+    year(2017, { commits: 120 }),
+    year(2018, { commits: 150 }),
+    year(2019, { commits: 4000, prs: 200, reviews: 300, issues: 100 }),
+    year(2020, { commits: 5000, prs: 250, reviews: 350, issues: 120 }),
+    year(2021, { commits: 6000, prs: 300, reviews: 400, issues: 140 }),
+    year(2022, { commits: 7000, prs: 350, reviews: 450, issues: 160 }),
+    year(2023, { commits: 8000, prs: 400, reviews: 500, issues: 180 }),
+  ];
+
+  it("repeat trophies demand a stronger profile: OVR 80 holds one, 87 two, 94 three", () => {
+    const count = (overall: number) =>
+      computeAwards(card({ years: escalating, overall })).filter((a) => a.key === "ballon_dor")
+        .length;
+    expect(count(80)).toBe(1);
+    expect(count(86)).toBe(1);
+    expect(count(87)).toBe(2);
+    expect(count(93)).toBe(2);
+    expect(count(94)).toBe(3);
+  });
+
   it("never exceeds the cap, and icons get one more", () => {
-    // Escalating career: later years tower over the early median.
-    const escalating = [
-      year(2016, { commits: 100 }),
-      year(2017, { commits: 120 }),
-      year(2018, { commits: 150 }),
-      year(2019, { commits: 4000, prs: 200, reviews: 300, issues: 100 }),
-      year(2020, { commits: 5000, prs: 250, reviews: 350, issues: 120 }),
-      year(2021, { commits: 6000, prs: 300, reviews: 400, issues: 140 }),
-      year(2022, { commits: 7000, prs: 350, reviews: 450, issues: 160 }),
-      year(2023, { commits: 8000, prs: 400, reviews: 500, issues: 180 }),
-    ];
-    const gold = computeAwards(card({ years: escalating, finish: "gold" }));
+    const gold = computeAwards(card({ years: escalating, finish: "gold", overall: 95 }));
     expect(gold.filter((a) => a.key === "ballon_dor")).toHaveLength(3);
-    const icon = computeAwards(card({ years: escalating, finish: "icon" }));
+    const icon = computeAwards(card({ years: escalating, finish: "icon", overall: 95 }));
     expect(icon.filter((a) => a.key === "ballon_dor")).toHaveLength(4);
   });
 
