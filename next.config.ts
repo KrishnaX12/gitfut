@@ -1,9 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Self-contained build output (.next/standalone with its own server.js and only
+  // the traced node_modules) so the Docker image can run without the full repo or
+  // a `next start`. Required by the VPS/Coolify deploy; ignored by Vercel.
+  output: "standalone",
+
   // sharp (a native binary) feathers the embed-card avatar in app/api/card-image.
   // Marking it external loads it from node_modules at runtime instead of bundling
-  // it, so the correct platform binary is used on Vercel.
+  // it, so the correct platform binary is used on Vercel and in the standalone image.
   serverExternalPackages: ["sharp"],
 
   async rewrites() {
