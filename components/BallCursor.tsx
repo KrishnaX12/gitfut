@@ -144,13 +144,22 @@ export default function BallCursor() {
 
   if (phase !== "idle") {
     // Positioned by the phase effects via el.style.transform (refs can't be
-    // read during render); until then the transform below keeps it offscreen.
+    // read during render); until then the inline transform below parks it
+    // offscreen. Parking MUST be a transform, never Tailwind's -translate-*:
+    // v4 compiles those to the separate `translate` property, which composes
+    // with the transform the loop writes instead of being replaced by it, and
+    // left the ball a permanent SIZE above and left of the real pointer.
     return (
       <div
         ref={ballRef}
         aria-hidden
-        className="pointer-events-none fixed left-0 top-0 z-[999] -translate-x-full -translate-y-full will-change-transform"
-        style={{ ...frameStyle, width: SIZE, height: SIZE }}
+        className="pointer-events-none fixed left-0 top-0 z-[999] will-change-transform"
+        style={{
+          ...frameStyle,
+          width: SIZE,
+          height: SIZE,
+          transform: `translate3d(-${SIZE}px, -${SIZE}px, 0)`,
+        }}
       />
     );
   }
