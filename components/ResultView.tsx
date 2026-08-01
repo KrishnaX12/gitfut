@@ -35,6 +35,9 @@ interface Props {
   stars?: number | null;
   /** GitHub-derived flag; share links only carry ?country= when it's overridden. */
   canonicalCountry?: string;
+  /** Rendered as the feature tour's demo stage: drop the support pills, which
+   *  are promo chrome with nothing to do with the tour (and float above it). */
+  demo?: boolean;
 }
 
 // Card width scales with the viewport but is bounded by BOTH width and height
@@ -47,6 +50,7 @@ export default function ResultView({
   onCountryChange,
   stars,
   canonicalCountry = "",
+  demo = false,
 }: Props) {
   const captureRef = useRef<HTMLDivElement>(null);
   const storyRef = useRef<HTMLDivElement>(null);
@@ -193,12 +197,14 @@ export default function ResultView({
               storyRef={storyRef}
               canonicalCountry={canonicalCountry}
             />
-            <DuelButton login={card.login} />
+            <div data-tour="duel">
+              <DuelButton login={card.login} />
+            </div>
           </div>
           {/* Mobile cabinet: right under the duel CTA, before the report panels
               stack — the stacked layout's most visible slot after the card. */}
           {hasAwards && (
-            <div className="hidden w-[min(90vw,420px)] max-[980px]:block">
+            <div className="hidden w-[min(90vw,420px)] max-[980px]:block" data-tour="trophies">
               <TrophyCabinetPanel card={card} onAwardClick={setActiveAward} />
             </div>
           )}
@@ -212,7 +218,7 @@ export default function ResultView({
             <MetricsPanel card={card} />
             {hasAwards ? (
               <>
-                <div className="max-[980px]:hidden">
+                <div className="max-[980px]:hidden" data-tour="trophies">
                   <TrophyCabinetPanel card={card} onAwardClick={setActiveAward} />
                 </div>
                 <button
@@ -255,8 +261,8 @@ export default function ResultView({
       </div>
     </main>
 
-    <SupportProductHunt />
-    <BuyMeACoffee />
+    {!demo && <SupportProductHunt />}
+    {!demo && <BuyMeACoffee />}
 
     {modalOpen && <HowItWorksModal onClose={() => setModalOpen(false)} />}
 

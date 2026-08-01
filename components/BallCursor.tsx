@@ -167,6 +167,7 @@ export default function BallCursor() {
   return (
     <button
       type="button"
+      data-tour="ball"
       onClick={(e) => {
         posRef.current = { x: e.clientX, y: e.clientY };
         setPhase("dribble");
