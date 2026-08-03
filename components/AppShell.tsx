@@ -47,27 +47,19 @@ export default function AppShell({
     } catch {}
   }, []);
 
-  // The tour auto-plays exactly once. If it should NOT play, the pre-hydration
-  // cover was already removed synchronously by the inline script; if the tour
-  // chunk somehow never arrives, the safety timer clears the cover anyway so
-  // nobody stares at a blank screen. Deferred set (like seen-home above) so it
-  // can't cascade a render.
+  // The tour auto-plays exactly once. Mounted immediately even though it stays
+  // invisible at first: its demo stage is a whole scout page, and rendering
+  // that behind a transparent overlay is what lets the reveal be a clean fade
+  // instead of a mount. The hold on home is the tour's own (see FeatureTour).
+  // Deferred set (like seen-home above) so it can't cascade a render.
   useEffect(() => {
     let show = false;
     try {
       show = !localStorage.getItem(TOUR_STORAGE_KEY);
     } catch {}
-    const t = setTimeout(() => {
-      if (show) setTourOpen(true);
-    }, 0);
-    const safety = setTimeout(() => {
-      const cover = document.getElementById("gf-tour-cover");
-      if (cover) cover.style.display = "none";
-    }, 4000);
-    return () => {
-      clearTimeout(t);
-      clearTimeout(safety);
-    };
+    if (!show) return;
+    const t = setTimeout(() => setTourOpen(true), 0);
+    return () => clearTimeout(t);
   }, []);
 
   // Scouting navigates to the canonical /<username> route. The transition keeps

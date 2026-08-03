@@ -23,6 +23,8 @@ const ZOOM_OUT_MS = 900; // the pull back to the whole page
 const OPEN_HOLD = 1500; // look at the scout page before the first dive
 const WIDE_HOLD = 1000; // breathe at full view between stops
 const EXIT_MS = 380;
+const HOME_HOLD = 850; // home is seen plainly first, then the dark washes over it
+const ENTER_MS = 550; // that wash
 const CAP_GAP = 14; // caption sits close to the spotlight, part of the same beat
 
 interface Cam {
@@ -79,24 +81,28 @@ const demoCard = () => SAMPLE_CARDS.find((c) => c.login === "torvalds") ?? SAMPL
 
 const prefersReduced = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-// Eased count-up; renders the target outright under reduced motion.
+// Eased count-up; renders the target outright under reduced motion. `run`
+// holds it at zero until the screen is actually visible, so the climb isn't
+// spent behind the fade.
 function CountUp({
   to,
   decimals = 0,
   prefix = "",
   suffix = "",
   delay = 0,
+  run,
 }: {
   to: number;
   decimals?: number;
   prefix?: string;
   suffix?: string;
   delay?: number;
+  run: boolean;
 }) {
   const [reduced] = useState(prefersReduced);
   const [v, setV] = useState(0);
   useEffect(() => {
-    if (reduced) return;
+    if (reduced || !run) return;
     let raf = 0;
     let start = 0;
     const DUR = 1600;
@@ -108,7 +114,7 @@ function CountUp({
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [to, delay, reduced]);
+  }, [to, delay, reduced, run]);
   return (
     <span className="tabular-nums">
       {prefix}
@@ -124,6 +130,7 @@ export default function FeatureTour({ onDone }: { onDone: () => void }) {
   const [caption, setCaption] = useState<Caption | null>(null);
   const [thanksIdx, setThanksIdx] = useState(0);
   const [ctaIn, setCtaIn] = useState(false);
+  const [shown, setShown] = useState(false);
   // Resolved once on mount (ssr:false, so window exists): drop the ball stop
   // where the ball itself never mounts, and flatten motion when asked to.
   const [steps] = useState<readonly TourStep[]>(() =>
@@ -153,28 +160,29 @@ export default function FeatureTour({ onDone }: { onDone: () => void }) {
     setTimeout(onDone, EXIT_MS + 30);
   }, [onDone]);
 
-  // The pre-hydration cover (app/page.tsx) bridged SSR paint -> here; the
-  // intro is the same solid midnight, so hiding it now is seamless. Hidden,
-  // not removed — React owns that node and the trees must keep matching.
+  // Let home stand on its own for a beat, then wash over it. Everything else
+  // in the intro is timed off `shown`, not off mount, so the count-up and the
+  // CTA still land against the moment a visitor can actually see them.
   useEffect(() => {
-    const cover = document.getElementById("gf-tour-cover");
-    if (cover) cover.style.display = "none";
+    const t = setTimeout(() => setShown(true), HOME_HOLD);
+    return () => clearTimeout(t);
   }, []);
 
   // Cycle the thank-you through its languages while the intro is up.
   useEffect(() => {
-    if (phase !== "intro" || reduced) return;
+    if (phase !== "intro" || !shown || reduced) return;
     const id = setInterval(() => setThanksIdx((i) => (i + 1) % THANKS.length), THANKS_MS);
     return () => clearInterval(id);
-  }, [phase, reduced]);
+  }, [phase, shown, reduced]);
 
   // Hold the way in back until the thank-you has had its moment. It stays in
   // the layout the whole time (only opacity moves), so nothing shifts when it
   // arrives.
   useEffect(() => {
+    if (!shown) return;
     const t = setTimeout(() => setCtaIn(true), CTA_DELAY);
     return () => clearTimeout(t);
-  }, []);
+  }, [shown]);
 
   useEffect(() => clearTimers, []);
 
@@ -310,7 +318,12 @@ export default function FeatureTour({ onDone }: { onDone: () => void }) {
   return (
     <div
       className="fixed inset-0 z-[110] overflow-hidden bg-bg"
-      style={{ opacity: phase === "exit" ? 0 : 1, transition: `opacity ${EXIT_MS}ms ease` }}
+      style={{
+        opacity: shown && phase !== "exit" ? 1 : 0,
+        // nothing invisible should eat a click on home during the hold
+        pointerEvents: shown ? "auto" : "none",
+        transition: reduced ? "none" : `opacity ${phase === "exit" ? EXIT_MS : ENTER_MS}ms ${EASE}`,
+      }}
     >
       {/* ---- the demo stage: a real, live scout page under the camera ---- */}
       <div
@@ -344,96 +357,117 @@ export default function FeatureTour({ onDone }: { onDone: () => void }) {
 
       {/* ---- intro: the thank-you moment ---- */}
       {phase === "intro" && (
-        <div className="absolute inset-0 z-[10] flex flex-col items-center justify-center bg-bg px-6 text-center">
-          {/* one soft, slowly breathing wash — the only decoration */}
-          {/* centering lives in the transform (and its keyframe) alone — a
-              Tailwind -translate-* here sets the separate `translate` property
-              and would compose with it, shoving the glow off-screen */}
+        <>
+          {/* the black is its own sheet, opaque from the first frame so the demo
+              stage never shows through. The root's fade carries it over home;
+              the copy above trails by a beat, so the words resolve into midnight
+              instead of crossfading through the home page underneath. */}
+          <div aria-hidden className="absolute inset-0 z-[9] bg-bg" />
           <div
-            aria-hidden
-            className="gf-thanks-glow pointer-events-none absolute left-1/2 top-1/2 h-[560px] w-[900px] max-w-[120vw]"
+            className="absolute inset-0 z-[10] flex flex-col items-center justify-center px-6 text-center"
             style={{
-              transform: "translate(-50%,-58%)",
-              background:
-                "radial-gradient(closest-side, rgba(57,211,83,.13), transparent 70%), radial-gradient(closest-side, rgba(212,175,55,.09), transparent 72%)",
-            }}
-          />
-
-          <div className="font-mono text-[11px] font-semibold tracking-[.4em] text-brand">
-            ONE MONTH OF GITFUT
-          </div>
-
-          {/* every language stacked in a single grid cell: the block keeps one
-              width no matter which word is showing */}
-          <div className="mt-[clamp(16px,3vh,26px)] grid place-items-center">
-            {THANKS.map((w, i) => (
-              <span
-                key={w.lang}
-                lang={w.lang}
-                dir={w.rtl ? "rtl" : undefined}
-                className="font-sans text-[clamp(54px,8.4vw,108px)] font-light leading-[1.12] tracking-[-0.03em] text-ink"
-                style={{
-                  gridArea: "1 / 1",
-                  fontFamily: w.font,
-                  opacity: i === thanksIdx ? 1 : 0,
-                  // out fast, in after the outgoing word has cleared — no two
-                  // scripts ever ghost through each other
-                  transition: i === thanksIdx ? "opacity 1s ease .6s" : "opacity .8s ease",
-                }}
-              >
-                {w.text}
-              </span>
-            ))}
-          </div>
-
-          {/* no divider above the numbers: the only rule on this screen is the
-              one under the CTA, so a line means "click me" and nothing else */}
-          <div className="mt-[clamp(36px,6vh,60px)] flex flex-wrap items-start justify-center gap-x-[clamp(30px,6vw,72px)] gap-y-6">
-            {STATS.map((s) => (
-              <div key={s.label} className="flex flex-col items-center gap-[7px]">
-                <span className="font-sans text-[clamp(26px,3.4vw,40px)] font-light leading-none tracking-[-0.02em] text-ink">
-                  <CountUp to={s.to} decimals={s.decimals} prefix={s.prefix} suffix={s.suffix} delay={s.delay} />
-                </span>
-                <span className="font-mono text-[10px] font-semibold tracking-[.24em] text-ink-mute">
-                  {s.label}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {/* the way in, in the same mono micro-caps voice as the eyebrow and
-              the stat labels, closed by a green hairline answering the gold one
-              above the numbers — the one live thing on a still screen */}
-          <button
-            type="button"
-            onClick={start}
-            tabIndex={ctaIn ? 0 : -1}
-            aria-hidden={!ctaIn}
-            className="group mt-[clamp(30px,5vh,52px)] cursor-pointer rounded-md px-3 py-3 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50"
-            style={{
-              opacity: ctaIn ? 1 : 0,
-              transform: ctaIn || reduced ? "none" : "translateY(7px)",
-              pointerEvents: ctaIn ? "auto" : "none",
-              transition: reduced ? "none" : `opacity .9s ease, transform .9s ${EASE}`,
+              opacity: shown ? 1 : 0,
+              transform: shown || reduced ? "none" : "translateY(14px)",
+              transition: reduced ? "none" : `opacity .65s ease .3s, transform .65s ${EASE} .3s`,
             }}
           >
-            <span className="font-mono text-[11px] font-semibold tracking-[.3em] text-ink-soft transition-colors duration-300 group-hover:text-ink group-focus-visible:text-ink">
-              SEE WHAT WE BUILT
-            </span>
-            {/* draws itself open under the words as they land: the one bit of
-                choreography on a still screen, and the only thing telling you
-                this line is a control */}
-            <span
+            {/* one soft, slowly breathing wash — the only decoration */}
+            {/* centering lives in the transform (and its keyframe) alone — a
+                Tailwind -translate-* here sets the separate `translate` property
+                and would compose with it, shoving the glow off-screen */}
+            <div
               aria-hidden
-              className="mt-[9px] block h-px opacity-45 group-hover:opacity-100 group-hover:drop-shadow-[0_0_6px_rgba(57,211,83,.55)] group-focus-visible:opacity-100"
+              className="gf-thanks-glow pointer-events-none absolute left-1/2 top-1/2 h-[560px] w-[900px] max-w-[120vw]"
               style={{
-                background: "linear-gradient(90deg,transparent,var(--color-brand),transparent)",
-                transform: reduced ? "none" : `scaleX(${ctaIn ? 1 : 0})`,
-                transition: reduced ? "none" : `transform 1.1s ${EASE} .15s, opacity .3s ease, filter .3s ease`,
+                transform: "translate(-50%,-58%)",
+                background:
+                  "radial-gradient(closest-side, rgba(57,211,83,.13), transparent 70%), radial-gradient(closest-side, rgba(212,175,55,.09), transparent 72%)",
               }}
             />
-          </button>
-        </div>
+
+            <div className="font-mono text-[11px] font-semibold tracking-[.4em] text-brand">
+              ONE MONTH OF GITFUT
+            </div>
+
+            {/* every language stacked in a single grid cell: the block keeps one
+                width no matter which word is showing */}
+            <div className="mt-[clamp(16px,3vh,26px)] grid place-items-center">
+              {THANKS.map((w, i) => (
+                <span
+                  key={w.lang}
+                  lang={w.lang}
+                  dir={w.rtl ? "rtl" : undefined}
+                  className="font-sans text-[clamp(54px,8.4vw,108px)] font-light leading-[1.12] tracking-[-0.03em] text-ink"
+                  style={{
+                    gridArea: "1 / 1",
+                    fontFamily: w.font,
+                    opacity: i === thanksIdx ? 1 : 0,
+                    // out fast, in after the outgoing word has cleared — no two
+                    // scripts ever ghost through each other
+                    transition: i === thanksIdx ? "opacity 1s ease .6s" : "opacity .8s ease",
+                  }}
+                >
+                  {w.text}
+                </span>
+              ))}
+            </div>
+
+            {/* no divider above the numbers: the only rule on this screen is the
+                one under the CTA, so a line means "click me" and nothing else */}
+            <div className="mt-[clamp(36px,6vh,60px)] flex flex-wrap items-start justify-center gap-x-[clamp(30px,6vw,72px)] gap-y-6">
+              {STATS.map((s) => (
+                <div key={s.label} className="flex flex-col items-center gap-[7px]">
+                  <span className="font-sans text-[clamp(26px,3.4vw,40px)] font-light leading-none tracking-[-0.02em] text-ink">
+                    <CountUp
+                      to={s.to}
+                      decimals={s.decimals}
+                      prefix={s.prefix}
+                      suffix={s.suffix}
+                      delay={s.delay}
+                      run={shown}
+                    />
+                  </span>
+                  <span className="font-mono text-[10px] font-semibold tracking-[.24em] text-ink-mute">
+                    {s.label}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* the way in, in the same mono micro-caps voice as the eyebrow and
+                the stat labels, closed by a green hairline — the one live thing
+                on a still screen */}
+            <button
+              type="button"
+              onClick={start}
+              tabIndex={ctaIn ? 0 : -1}
+              aria-hidden={!ctaIn}
+              className="group mt-[clamp(30px,5vh,52px)] cursor-pointer rounded-md px-3 py-3 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50"
+              style={{
+                opacity: ctaIn ? 1 : 0,
+                transform: ctaIn || reduced ? "none" : "translateY(7px)",
+                pointerEvents: ctaIn ? "auto" : "none",
+                transition: reduced ? "none" : `opacity .9s ease, transform .9s ${EASE}`,
+              }}
+            >
+              <span className="font-mono text-[11px] font-semibold tracking-[.3em] text-ink-soft transition-colors duration-300 group-hover:text-ink group-focus-visible:text-ink">
+                SEE WHAT WE BUILT
+              </span>
+              {/* draws itself open under the words as they land: the one bit of
+                  choreography on a still screen, and the only thing telling you
+                  this line is a control */}
+              <span
+                aria-hidden
+                className="mt-[9px] block h-px opacity-45 group-hover:opacity-100 group-hover:drop-shadow-[0_0_6px_rgba(57,211,83,.55)] group-focus-visible:opacity-100"
+                style={{
+                  background: "linear-gradient(90deg,transparent,var(--color-brand),transparent)",
+                  transform: reduced ? "none" : `scaleX(${ctaIn ? 1 : 0})`,
+                  transition: reduced ? "none" : `transform 1.1s ${EASE} .15s, opacity .3s ease, filter .3s ease`,
+                }}
+              />
+            </button>
+          </div>
+        </>
       )}
 
       {/* ---- tour chrome: caption hugging the spotlight, controls docked ---- */}
