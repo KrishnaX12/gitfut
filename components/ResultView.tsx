@@ -36,7 +36,8 @@ interface Props {
   /** GitHub-derived flag; share links only carry ?country= when it's overridden. */
   canonicalCountry?: string;
   /** Rendered as the feature tour's demo stage: drop the support pills, which
-   *  are promo chrome with nothing to do with the tour (and float above it). */
+   *  are promo chrome with nothing to do with the tour (and float above it),
+   *  and hold the header still so the camera's scaling doesn't fight it. */
   demo?: boolean;
 }
 
@@ -143,7 +144,7 @@ export default function ResultView({
       </div>
 
       <div className="shrink-0">
-        <ReportHeader card={card} />
+        <ReportHeader card={card} still={demo} />
       </div>
 
       <div className="mt-[clamp(14px,2.4vh,26px)] grid grid-cols-[1fr_auto_1fr] items-start gap-[clamp(16px,2.4vw,40px)] max-[980px]:mt-6 max-[980px]:flex max-[980px]:flex-col max-[980px]:items-center">
