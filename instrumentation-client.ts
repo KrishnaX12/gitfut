@@ -4,13 +4,8 @@
 
 import * as Sentry from "@sentry/nextjs";
 
-// Errors only. The backend is self-hosted GlitchTip, which ingests exceptions
-// but not session replays or logs — those would be bundle weight and traffic to
-// our own box for data nothing can read. The DSN is public by design (it only
-// permits writing events), so hardcoding it also keeps the Docker build free of
-// a NEXT_PUBLIC_ build arg.
 Sentry.init({
-  dsn: "https://14c8af2b54fe4787a5064b60111a06d4@glitchtip.gitfut.com/1",
+  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
 
   tracesSampleRate: 0,
 
