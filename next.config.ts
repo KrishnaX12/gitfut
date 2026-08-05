@@ -31,7 +31,7 @@ export default withSentryConfig(nextConfig, {
   org: "gitfut",
 
   project: "gitfut",
-  sentryUrl: "https://glitchtip.gitfut.com/",
+  sentryUrl: process.env.NEXT_PUBLIC_SENTRY_URL,
 
   // Always report the source-map upload: the Docker build has no CI flag, and a
   // silent failure there means every production stack trace comes back minified.
