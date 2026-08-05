@@ -46,4 +46,8 @@ export const TOUR_STEPS: readonly TourStep[] = [
 /** The ball stop requires the ball — same media query BallCursor mounts on. */
 export const BALL_MQ = "(pointer: fine) and (hover: hover) and (min-width: 768px)";
 
-export const TOUR_STORAGE_KEY = "gitfut:tour:v1";
+/**
+ * Bump the version to replay the tour for everyone: the old key is simply
+ * never read again, so every visitor looks unseen and gets it once more.
+ */
+export const TOUR_STORAGE_KEY = "gitfut:tour:v2";

@@ -66,15 +66,17 @@ const THANKS: readonly { lang: string; text: string; font?: string; rtl?: boolea
   { lang: "ko", text: "감사합니다", font: '"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif' },
   { lang: "ja", text: "ありがとう", font: '"Hiragino Sans","Yu Gothic","Noto Sans JP",Meiryo,sans-serif' },
 ];
-const THANKS_MS = 5000;
+const THANKS_MS = 3000;
 // The counters land at ~2s. The way into the tour surfaces as they settle, so
 // the thank-you is read before there is anywhere to click.
 const CTA_DELAY = 2000;
 
+// `gold` marks the milestone figure — the one number on this screen that gets
+// the prestige colour instead of plain ink.
 const STATS = [
-  { to: 150, prefix: "+", suffix: "k", label: "VISITORS" },
-  { to: 950, prefix: "+", suffix: "k", label: "CARDS GENERATED", delay: 220 },
-  { to: 2.4, decimals: 1, suffix: "k", label: "GITHUB STARS", delay: 440 },
+  { to: 160, prefix: "+", suffix: "k", label: "VISITORS" },
+  { to: 1, prefix: "+", suffix: "M", label: "CARDS GENERATED", delay: 220, gold: true },
+  { to: 2.5, decimals: 1, suffix: "k", label: "GITHUB STARS", delay: 440 },
 ];
 
 const demoCard = () => SAMPLE_CARDS.find((c) => c.login === "torvalds") ?? SAMPLE_CARDS[0];
@@ -380,8 +382,10 @@ export default function FeatureTour({ onDone }: { onDone: () => void }) {
               className="gf-thanks-glow pointer-events-none absolute left-1/2 top-1/2 h-[560px] w-[900px] max-w-[120vw]"
               style={{
                 transform: "translate(-50%,-58%)",
+                // the green is the half that tints the 1M figure toward olive,
+                // so it takes the cut and the gold roughly holds its own
                 background:
-                  "radial-gradient(closest-side, rgba(57,211,83,.13), transparent 70%), radial-gradient(closest-side, rgba(212,175,55,.09), transparent 72%)",
+                  "radial-gradient(closest-side, rgba(57,211,83,.09), transparent 70%), radial-gradient(closest-side, rgba(212,175,55,.08), transparent 72%)",
               }}
             />
 
@@ -417,7 +421,11 @@ export default function FeatureTour({ onDone }: { onDone: () => void }) {
             <div className="mt-[clamp(36px,6vh,60px)] flex flex-wrap items-start justify-center gap-x-[clamp(30px,6vw,72px)] gap-y-6">
               {STATS.map((s) => (
                 <div key={s.label} className="flex flex-col items-center gap-[7px]">
-                  <span className="font-sans text-[clamp(26px,3.4vw,40px)] font-light leading-none tracking-[-0.02em] text-ink">
+                  <span
+                    className={`font-sans text-[clamp(26px,3.4vw,40px)] font-light leading-none tracking-[-0.02em] ${
+                      s.gold ? "text-gold-hi" : "text-ink"
+                    }`}
+                  >
                     <CountUp
                       to={s.to}
                       decimals={s.decimals}
