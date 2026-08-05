@@ -37,9 +37,13 @@ export default function DistributionPanel({ card, bare = false }: { card: Card; 
   };
   const all = top(DIST_COUNTS, DIST_N);
   const act = top(DIST_ACTIVE_COUNTS, DIST_ACTIVE_N);
+  // The locale is pinned because this string is server-rendered inside Tip: a
+  // bare toLocaleString() formats with whatever locale the runtime defaults to,
+  // so the container's "44,915" met a French browser's "44 915" on hydration and
+  // React tore the tree down (#418).
   const tipText =
-    `Higher than ${(DIST_N - all.atOrAbove).toLocaleString()} of ${DIST_N.toLocaleString()} randomly sampled GitHub users, ` +
-    `and ${(DIST_ACTIVE_N - act.atOrAbove).toLocaleString()} of the ${DIST_ACTIVE_N.toLocaleString()} who were active in the past year.`;
+    `Higher than ${(DIST_N - all.atOrAbove).toLocaleString("en-US")} of ${DIST_N.toLocaleString("en-US")} randomly sampled GitHub users, ` +
+    `and ${(DIST_ACTIVE_N - act.atOrAbove).toLocaleString("en-US")} of the ${DIST_ACTIVE_N.toLocaleString("en-US")} who were active in the past year.`;
 
   return (
     <section className={bare ? undefined : "rounded-2xl border border-white/[0.06] bg-white/[0.02] p-[16px]"}>
