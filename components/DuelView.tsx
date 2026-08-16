@@ -211,7 +211,23 @@ export default function DuelView({
     setDownloading(true);
     try {
       // Use pixelRatio: 2 for a crisp export (the duel view is large)
-      const url = await renderCardImage(targetRef.current, (n) => toPng(n, { pixelRatio: 2, cacheBust: true }));
+      const url = await renderCardImage(targetRef.current, (n) => {
+        // Tightly wrap the content for the exported poster
+        n.style.minHeight = "0";
+        n.style.paddingTop = "40px";
+        n.style.paddingBottom = "40px";
+
+        // Fix background positioning in the clone so it covers the whole element
+        const bg = n.querySelector<HTMLElement>("[data-capture-bg]");
+        if (bg) bg.style.position = "absolute";
+
+        // Hide navigation and footer from the exported image
+        n.querySelectorAll<HTMLElement>("[data-hide-capture]").forEach((el) => {
+          el.style.display = "none";
+        });
+
+        return toPng(n, { pixelRatio: 2, cacheBust: true });
+      });
       const a = document.createElement("a");
       a.download = `${challenger.login}-vs-${opponent.login}-gitfut.png`;
       a.href = url;
@@ -388,6 +404,7 @@ export default function DuelView({
             brightens as that side scores — then flares for the winner at full
             time. Draws keep the house lights even. */}
         <div
+          data-capture-bg
           aria-hidden
           className="pointer-events-none fixed inset-0 -z-10"
           style={{ background: "var(--color-bg)" }}
@@ -410,7 +427,7 @@ export default function DuelView({
         </div>
 
         {/* top bar — mirrors the scout report's frame */}
-        <div className="mb-[8px] mt-[clamp(8px,2vh,18px)] flex w-full shrink-0 items-center justify-between gap-[10px]">
+        <div data-hide-capture className="mb-[8px] mt-[clamp(8px,2vh,18px)] flex w-full shrink-0 items-center justify-between gap-[10px]">
           <div className="flex items-center gap-[10px]">
             <Link
               href="/"
@@ -752,7 +769,7 @@ export default function DuelView({
           {corner(opponent, bTheme, "opponent")}
         </div>
 
-        <footer className="relative z-[2] mt-auto flex flex-none items-center justify-center p-[clamp(12px,2.6vh,24px)]">
+        <footer data-hide-capture className="relative z-[2] mt-auto flex flex-none items-center justify-center p-[clamp(12px,2.6vh,24px)]">
           <FooterCredit />
         </footer>
       </main>
