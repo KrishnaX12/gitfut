@@ -704,22 +704,7 @@ export default function DuelView({
                     <span className="relative">SHARE THE DUEL</span>
                   </button>
                 )}
-                <div className="grid w-full grid-cols-2 gap-[8px] sm:grid-cols-4">
-                  <button
-                    type="button"
-                    onClick={downloadPng}
-                    disabled={downloading}
-                    title="Download duel as image"
-                    aria-label="Download duel as image"
-                    className="group flex items-center justify-center gap-[7px] rounded-xl border border-line bg-white/[0.03] py-[11px] text-[12.5px] font-semibold text-ink-soft transition-all duration-200 ease-out hover:-translate-y-[1px] hover:border-brand/50 hover:bg-brand/[0.08] hover:text-white active:translate-y-0 active:scale-[.98] disabled:opacity-50"
-                  >
-                    {downloading ? (
-                      <span className="h-[14px] w-[14px] animate-spin rounded-full border-[1.5px] border-brand/40 border-t-brand" />
-                    ) : (
-                      <Download size={14} />
-                    )}
-                    <span className="max-[360px]:hidden">Download</span>
-                  </button>
+                <div className="flex w-full gap-[8px]">
                   <button
                     type="button"
                     onClick={() =>
@@ -731,36 +716,46 @@ export default function DuelView({
                     }
                     title="Share on X"
                     aria-label="Share on X"
-                    className="group flex items-center justify-center gap-[7px] rounded-xl border border-line bg-white/[0.03] py-[11px] text-[12.5px] font-semibold text-ink-soft transition-all duration-200 ease-out hover:-translate-y-[1px] hover:border-white/25 hover:bg-white/[0.07] hover:text-white active:translate-y-0 active:scale-[.98]"
+                    className="group flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-xl border border-line bg-white/[0.03] text-ink-soft transition-all duration-200 ease-out hover:-translate-y-[1px] hover:border-white/25 hover:bg-white/[0.07] hover:text-white active:translate-y-0 active:scale-[.96]"
                   >
-                    <XLogo size={14} />
-                    <span className="max-[360px]:hidden">X</span>
+                    <XLogo size={16} />
                   </button>
                   <button
                     type="button"
                     onClick={copyLink}
                     title="Copy link to this duel"
                     aria-label="Copy link to this duel"
-                    className="group flex items-center justify-center gap-[7px] rounded-xl border border-line bg-white/[0.03] py-[11px] text-[12.5px] font-semibold text-ink-soft transition-all duration-200 ease-out hover:-translate-y-[1px] hover:border-brand/50 hover:bg-brand/[0.08] hover:text-white active:translate-y-0 active:scale-[.98]"
+                    className="group flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-xl border border-line bg-white/[0.03] text-ink-soft transition-all duration-200 ease-out hover:-translate-y-[1px] hover:border-brand/50 hover:bg-brand/[0.08] hover:text-white active:translate-y-0 active:scale-[.96]"
                   >
                     {linkCopied ? (
-                      <Check size={14} className="text-brand" />
+                      <Check size={16} className="text-brand" />
                     ) : (
-                      <Link2 size={14} />
+                      <Link2 size={16} />
                     )}
-                    <span className="max-[360px]:hidden">
-                      {linkCopied ? "Copied" : "Copy link"}
-                    </span>
                   </button>
                   <Link
                     href={`/${opponent.login}/vs/${challenger.login}`}
                     title="Rematch with the corners swapped"
                     aria-label="Rematch with the corners swapped"
-                    className="group flex items-center justify-center gap-[7px] rounded-xl border border-line bg-white/[0.03] py-[11px] text-[12.5px] font-semibold text-ink-soft transition-all duration-200 ease-out hover:-translate-y-[1px] hover:border-white/25 hover:bg-white/[0.07] hover:text-white active:translate-y-0 active:scale-[.98]"
+                    className="group flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-xl border border-line bg-white/[0.03] text-ink-soft transition-all duration-200 ease-out hover:-translate-y-[1px] hover:border-white/25 hover:bg-white/[0.07] hover:text-white active:translate-y-0 active:scale-[.96]"
                   >
-                    <Repeat size={14} />
-                    <span className="max-[360px]:hidden">Swap corners</span>
+                    <Repeat size={16} />
                   </Link>
+                  <button
+                    type="button"
+                    onClick={downloadPng}
+                    disabled={downloading}
+                    title="Download duel as image"
+                    aria-label="Download duel as image"
+                    className="group flex h-[46px] min-w-0 flex-1 items-center justify-center gap-[8px] rounded-xl border border-line bg-white/[0.03] text-[13.5px] font-bold tracking-[.02em] text-ink-soft transition-all duration-200 ease-out hover:-translate-y-[1px] hover:border-brand/50 hover:bg-brand/[0.08] hover:text-white active:translate-y-0 active:scale-[.98] disabled:opacity-50"
+                  >
+                    {downloading ? (
+                      <span className="h-[15px] w-[15px] shrink-0 animate-spin rounded-full border-[1.5px] border-brand/40 border-t-brand" />
+                    ) : (
+                      <Download size={16} strokeWidth={2.4} className="shrink-0 transition-transform group-hover:translate-y-[1px]" />
+                    )}
+                    <span className="truncate">Download</span>
+                  </button>
                 </div>
               </div>
             </div>
