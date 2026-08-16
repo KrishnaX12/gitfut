@@ -26,6 +26,7 @@ const CATALOG: PlaystyleDef[] = [
   { name: "Polyglot", icon: "languages", noun: "languages", value: (s) => s.languages, base: 5, plus: 9 },
   { name: "Prolific", icon: "folder-git", noun: "public repos", value: (s) => s.public_repos, base: 30, plus: 150 },
   { name: "Veteran", icon: "clock", noun: "years on GitHub", value: (s) => s.account_age_years, base: 5, plus: 12 },
+  { name: "Evergreen", icon: "leaf", noun: "active years", value: (s) => s.active_years, base: 5, plus: 10 },
 ];
 
 const MAX_SHOWN = 8;

@@ -58,6 +58,7 @@ describe("derivePlaystyles — qualifying", () => {
     expect(names(signals({ languages: 5 }))).toContain("Polyglot");
     expect(names(signals({ public_repos: 30 }))).toContain("Prolific");
     expect(names(signals({ account_age_years: 5 }))).toContain("Veteran");
+    expect(names(signals({ active_years: 5 }))).toContain("Evergreen");
   });
 });
 
@@ -85,7 +86,7 @@ describe("derivePlaystyles — the elite (PlayStyle+) tier", () => {
 });
 
 describe("derivePlaystyles — the shown list", () => {
-  // Clears all 11 base thresholds; only 8 may be shown.
+  // Clears all 12 base thresholds; only 8 may be shown.
   const everything = signals({
     total_stars_owned: 600,
     max_repo_stars: 1_100,
@@ -99,15 +100,16 @@ describe("derivePlaystyles — the shown list", () => {
     languages: 6,
     public_repos: 35,
     account_age_years: 6,
+    active_years: 6,
   });
 
-  it("caps the list at 8 even when all 11 qualify", () => {
+  it("caps the list at 8 even when all 12 qualify", () => {
     expect(derivePlaystyles(everything)).toHaveLength(8);
   });
 
   it("keeps an elite playstyle that the ratio sort alone would have cut", () => {
     // Polyglot at exactly 9 languages is elite, but only 1.8x its base — the
-    // WEAKEST ratio of the eleven here, so ranking by ratio alone would drop it
+    // WEAKEST ratio of the twelve here, so ranking by ratio alone would drop it
     // outside the top 8. The plus-first sort has to float it to the very top.
     const out = derivePlaystyles(
       signals({
