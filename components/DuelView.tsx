@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
-import { ArrowLeft, Check, Link2, Repeat, Share2 } from "lucide-react";
+import { ArrowLeft, Check, Link2, Repeat, Share2, Download } from "lucide-react";
+import { toPng } from "html-to-image";
+import { renderCardImage } from "@/lib/capture";
 import { dominanceShare, tallyRows, type Duel, type DuelSide } from "@/lib/duel";
 import type { Card } from "@/lib/scoring/types";
 import PlayerCard from "./PlayerCard";
@@ -158,6 +160,8 @@ export default function DuelView({
   const { challenger, opponent, rows, winner, onPenalties, training } = duel;
 
   const [activeAward, setActiveAward] = useState<AwardGroup | null>(null);
+  const [downloading, setDownloading] = useState(false);
+  const targetRef = useRef<HTMLElement>(null);
   // Kit clash (see finishTheme): ONLY a toty/totw vs silver pairing recolors —
   // the toty side wears its saturated tier blue so the sides stay readable.
   const { home: aTheme, away: bTheme } = duelThemes(challenger, opponent);
@@ -201,6 +205,23 @@ export default function DuelView({
 
   const status =
     !stamped && shown === 0 ? "KICK-OFF" : !stamped ? "LIVE" : "FULL TIME";
+
+  const downloadPng = async () => {
+    if (downloading || !targetRef.current) return;
+    setDownloading(true);
+    try {
+      // Use pixelRatio: 2 for a crisp export (the duel view is large)
+      const url = await renderCardImage(targetRef.current, (n) => toPng(n, { pixelRatio: 2, cacheBust: true }));
+      const a = document.createElement("a");
+      a.download = `${challenger.login}-vs-${opponent.login}-gitfut.png`;
+      a.href = url;
+      a.click();
+    } catch (e) {
+      console.error("[gitfut] duel download failed:", e);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   // Both header names share one size — the longer login sets it (a fixture
   // reads as one pair, not two weights) — shrinking smoothly for long handles
@@ -347,6 +368,7 @@ export default function DuelView({
   return (
     <>
       <main
+        ref={targetRef}
         // Tap-anywhere-to-skip, but never hijack a real control (links, the
         // star button, the radar's stat targets) — those keep their own click.
         onClick={
@@ -665,7 +687,22 @@ export default function DuelView({
                     <span className="relative">SHARE THE DUEL</span>
                   </button>
                 )}
-                <div className="grid w-full grid-cols-3 gap-[8px]">
+                <div className="grid w-full grid-cols-2 gap-[8px] sm:grid-cols-4">
+                  <button
+                    type="button"
+                    onClick={downloadPng}
+                    disabled={downloading}
+                    title="Download duel as image"
+                    aria-label="Download duel as image"
+                    className="group flex items-center justify-center gap-[7px] rounded-xl border border-line bg-white/[0.03] py-[11px] text-[12.5px] font-semibold text-ink-soft transition-all duration-200 ease-out hover:-translate-y-[1px] hover:border-brand/50 hover:bg-brand/[0.08] hover:text-white active:translate-y-0 active:scale-[.98] disabled:opacity-50"
+                  >
+                    {downloading ? (
+                      <span className="h-[14px] w-[14px] animate-spin rounded-full border-[1.5px] border-brand/40 border-t-brand" />
+                    ) : (
+                      <Download size={14} />
+                    )}
+                    <span className="max-[360px]:hidden">Download</span>
+                  </button>
                   <button
                     type="button"
                     onClick={() =>
