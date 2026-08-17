@@ -10,6 +10,7 @@ import {
   GitPullRequest,
   Infinity as InfinityIcon,
   Languages,
+  Leaf,
   type LucideIcon,
   Shield,
   Star,
@@ -34,6 +35,7 @@ const PLAYSTYLE_ICONS: Record<string, LucideIcon> = {
   languages: Languages,
   "folder-git": FolderGit2,
   clock: Clock,
+  leaf: Leaf,
 };
 
 // Hide a logo/image that fails to load (e.g. a CDN miss) rather than show a broken icon.
