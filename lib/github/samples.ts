@@ -36,7 +36,7 @@ const RAW: Signals[] = [
     topLanguage: "C",
     recent_contributions: 3259,
     active_days_recent: 354,
-    active_years: 7,
+    active_years: 16,
     total_contributions_lifetime: 37435,
     prs_to_others: 0,
     reviews: 2,
