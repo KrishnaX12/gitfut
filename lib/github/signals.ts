@@ -21,14 +21,10 @@ export function signalsFromPayload(p: RawPayload, now = Date.now()): Signals {
   // styling/markup (CSS/HTML) — the #1 drives the card's language + logo.
   const rankedLanguages = rankLanguages(p.languageRepos);
 
-  const years = new Set<number>();
-  for (const r of p.repos) {
-    const c = yearOf(r.createdAt);
-    const pushed = yearOf(r.pushedAt);
-    if (c) years.add(c);
-    if (pushed) years.add(pushed);
-  }
-  const active_years = Math.min(Math.max(years.size, 1), Math.ceil(account_age_years) || 1);
+  const active_years = Math.max(
+    1,
+    p.years.filter((y) => y.commits + y.prs + y.reviews + y.issues + y.restricted > 0).length
+  );
 
   // Recent activity over the last year: every contribution type GitHub exposes,
   // including the private (restricted) count, so it matches the profile graph.
