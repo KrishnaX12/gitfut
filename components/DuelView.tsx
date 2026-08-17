@@ -276,13 +276,13 @@ export default function DuelView({
     setTimeout(() => setDone((d) => (d === id ? null : d)), 1500);
   };
 
-  const track = async (id: ActionId, run: () => Promise<void>) => {
+  const track = async (id: ActionId, run: () => Promise<ActionId | void>) => {
     if (busy) return;
     setBusy(id);
     setMenuOpen(false);
     try {
-      await run();
-      finish(id);
+      const completedAs = await run();
+      finish(completedAs ?? id);
     } catch (e) {
       console.error(`[gitfut] duel ${id} failed:`, e);
     } finally {
@@ -317,52 +317,70 @@ export default function DuelView({
       }
     });
 
-  const downloadPng = () =>
-    track("download", async () => {
-      const node = targetRef.current;
-      if (!node) return;
-      const url = await renderCardImage(node, (n) => {
-        n.style.minHeight = "0";
-        n.style.paddingTop = "40px";
-        n.style.paddingBottom = "40px";
-        const bg = n.querySelector<HTMLElement>("[data-capture-bg]");
-        if (bg) bg.style.position = "absolute";
-        n.querySelectorAll<HTMLElement>("[data-hide-capture]").forEach((el) => {
-          el.style.display = "none";
-        });
-        return toPng(n, { pixelRatio: 2, cacheBust: true });
+  const downloadDuelPng = async () => {
+    const node = targetRef.current;
+    if (!node) return;
+    const url = await renderCardImage(node, (n) => {
+      n.style.minHeight = "0";
+      n.style.paddingTop = "40px";
+      n.style.paddingBottom = "40px";
+      const bg = n.querySelector<HTMLElement>("[data-capture-bg]");
+      if (bg) bg.style.position = "absolute";
+      n.querySelectorAll<HTMLElement>("[data-hide-capture]").forEach((el) => {
+        el.style.display = "none";
       });
-      const a = document.createElement("a");
-      a.download = `${challenger.login}-vs-${opponent.login}-gitfut.png`;
-      a.href = url;
-      a.click();
+      return toPng(n, { pixelRatio: 2, cacheBust: true });
     });
+    const a = document.createElement("a");
+    a.download = `${challenger.login}-vs-${opponent.login}-gitfut.png`;
+    a.href = url;
+    a.click();
+  };
+
+  const downloadPng = () => track("download", downloadDuelPng);
 
   const copyImage = () =>
     track("copy", async () => {
       const node = targetRef.current;
       if (!node) return;
-      await navigator.clipboard.write([
-        new ClipboardItem({
-          "image/png": renderCardImage(
-            node,
-            async (n) => {
-              n.style.minHeight = "0";
-              n.style.paddingTop = "40px";
-              n.style.paddingBottom = "40px";
-              const bg = n.querySelector<HTMLElement>("[data-capture-bg]");
-              if (bg) bg.style.position = "absolute";
-              n.querySelectorAll<HTMLElement>("[data-hide-capture]").forEach((el) => {
-                el.style.display = "none";
-              });
-              const blob = await toBlob(n, { pixelRatio: 2, cacheBust: true });
-              if (!blob) throw new Error("render returned no image");
-              return blob;
-            },
-            { transparent: false },
-          ),
-        }),
-      ]);
+
+      const canCopyImage =
+        typeof ClipboardItem !== "undefined" &&
+        typeof navigator.clipboard?.write === "function";
+
+      if (canCopyImage) {
+        try {
+          await navigator.clipboard.write([
+            new ClipboardItem({
+              "image/png": renderCardImage(
+                node,
+                async (n) => {
+                  n.style.minHeight = "0";
+                  n.style.paddingTop = "40px";
+                  n.style.paddingBottom = "40px";
+                  const bg = n.querySelector<HTMLElement>("[data-capture-bg]");
+                  if (bg) bg.style.position = "absolute";
+                  n.querySelectorAll<HTMLElement>("[data-hide-capture]").forEach((el) => {
+                    el.style.display = "none";
+                  });
+                  const blob = await toBlob(n, { pixelRatio: 2, cacheBust: true });
+                  if (!blob) throw new Error("render returned no image");
+                  return blob;
+                },
+                { transparent: false },
+              ),
+            }),
+          ]);
+          return;
+        } catch (error) {
+          console.warn("[gitfut] image clipboard unavailable; using fallback:", error);
+        }
+      }
+
+      if (await copyLink()) return "link";
+
+      await downloadDuelPng();
+      return "download";
     });
 
   const copyCardLink = () =>
